@@ -1,0 +1,8 @@
+node_modules/
+dist/
+reference-repos/
+openspec/
+.claude/
+*.tgz
+.DS_Store
+~/.skm/

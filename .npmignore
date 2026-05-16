@@ -1,0 +1,11 @@
+src/
+reference-repos/
+openspec/
+test/
+*.test.ts
+vitest.config.ts
+tsconfig.json
+eslint.config.*
+.prettierrc
+.gitignore
+.claude/
