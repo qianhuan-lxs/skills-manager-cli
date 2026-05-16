@@ -35,9 +35,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/skills-manager-cli.git"
+    "url": "https://github.com/qianhuan-lxs/skills-manager-cli.git"
   },
-  "homepage": "https://github.com/your-org/skills-manager-cli#readme",
+  "homepage": "https://github.com/qianhuan-lxs/skills-manager-cli#readme",
   "author": "",
   "license": "MIT",
   "devEngines": {
