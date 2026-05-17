@@ -203,6 +203,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  skills-manager-cli: 'link:'
+
 importers:
 
   .:
@@ -225,6 +228,9 @@ importers:
       openai:
         specifier: ^6.37.0
         version: 6.37.0(zod@4.4.3)
+      skills-manager-cli:
+        specifier: 'link:'
+        version: 'link:'
       zod:
         specifier: ^4.4.3
         version: 4.4.3

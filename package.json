@@ -1,5 +1,5 @@
 {
-  "name": "skm-cli",
+  "name": "skills-manager-cli",
   "version": "0.1.0",
   "description": "AI coding agent skill lifecycle management CLI — discover, scan, diagnose, generate, evolve",
   "type": "module",
@@ -44,7 +44,7 @@
     "packageManager": {
       "name": "pnpm",
       "version": "^11.1.2",
-      "onFail": "download"
+      "onFail": "warn"
     }
   },
   "devDependencies": {
@@ -64,6 +64,7 @@
     "commander": "^14.0.3",
     "glob": "^13.0.6",
     "openai": "^6.37.0",
+    "skills-manager-cli": "link:",
     "zod": "^4.4.3"
   }
 }

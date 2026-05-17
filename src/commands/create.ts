@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { SkillFrontmatter } from "../core/skill-parser.js";
 import { serializeFrontmatter } from "../core/skill-parser.js";
-import { parseNamespacedName, skillDirPath } from "../core/namespace.js";
+import { parseNamespacedName, validateName } from "../core/namespace.js";
 import { registerSkill } from "../core/usage.js";
 import { cliSuccess, cliError } from "../cli/messages.js";
 
@@ -14,26 +14,31 @@ interface CreateOptions {
 
 export async function handleCreateAction(name: string, options: CreateOptions): Promise<void> {
   try {
-    // Parse and validate name
+    // Parse name (may contain namespace: prefix)
     const parsed = parseNamespacedName(name);
-
-    // Override namespace if provided via option
     const ns = options.namespace ?? parsed.namespace;
-    const finalName = ns ? `${ns}:${parsed.name}` : parsed.name;
+    const skillName = parsed.name;
 
-    // Check if skill already exists
-    const projectSkillsDir = ".claude/skills";
-    const skillDir = skillDirPath({ namespace: ns, name: parsed.name, fullName: finalName }, projectSkillsDir);
+    // Validate skill name
+    validateName(skillName);
+
+    // Full name includes namespace prefix in frontmatter
+    const fullName = ns ? `${ns}:${skillName}` : skillName;
+
+    // Directory is always .claude/skills/<skill-name>/SKILL.md (no namespace subdirectory)
+    const skillsDir = ".claude/skills";
+    const skillDir = path.join(skillsDir, skillName);
     const skillPath = path.join(skillDir, "SKILL.md");
 
+    // Check if skill already exists
     if (fs.existsSync(skillPath)) {
-      cliError(`Skill "${finalName}" already exists at ${skillPath}`);
+      cliError(`Skill "${skillName}" already exists at ${skillPath}`);
       process.exit(1);
     }
 
-    // Build frontmatter
+    // Build frontmatter — name field includes namespace prefix
     const frontmatter: SkillFrontmatter = {
-      name: parsed.name,
+      name: fullName,
       description: options.description ?? "",
       version: "1.0.0",
     };
@@ -41,16 +46,16 @@ export async function handleCreateAction(name: string, options: CreateOptions): 
     // Build content
     const frontmatterStr = serializeFrontmatter(frontmatter);
     const body = options.content ?? "";
-    const fullContent = body ? `${frontmatterStr}\n\n${body}` : `${frontmatterStr}\n`;
+    const fullContent = body.trim() ? `${frontmatterStr}\n\n${body}` : `${frontmatterStr}`;
 
     // Create directory and write file
     fs.mkdirSync(skillDir, { recursive: true });
     fs.writeFileSync(skillPath, fullContent, "utf-8");
 
     // Register in usage
-    registerSkill(parsed.name, ns ?? null, "user");
+    registerSkill(skillName, ns ?? null, "user");
 
-    cliSuccess(`Skill "${finalName}" created at ${skillPath}`);
+    cliSuccess(`Skill "${fullName}" created at ${skillPath}`);
   } catch (error) {
     if (error instanceof Error) {
       cliError(error.message);

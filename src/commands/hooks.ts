@@ -9,13 +9,24 @@ interface HooksOptions {
 }
 
 const SETTINGS_PATH = path.join(os.homedir(), ".claude", "settings.json");
-const TICK_HOOK = { command: "skm tick", type: "command" as const };
-const REVIEW_HOOK = { command: "skm review --auto-apply", type: "command" as const };
+
+const TICK_HOOK = { type: "command" as const, command: "skm tick" };
+const REVIEW_HOOK = { type: "command" as const, command: "skm review --auto-apply" };
+
+interface HookEntry {
+  type: string;
+  command: string;
+}
+
+interface MatcherGroup {
+  matcher: string;
+  hooks: HookEntry[];
+}
 
 interface ClaudeSettings {
   hooks?: {
-    PostToolUse?: Array<{ command: string; type: string }>;
-    Stop?: Array<{ command: string; type: string }>;
+    PostToolUse?: MatcherGroup[];
+    Stop?: MatcherGroup[];
   };
 }
 
@@ -39,8 +50,8 @@ function saveSettings(settings: ClaudeSettings): void {
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), "utf-8");
 }
 
-function isHookInstalled(hooks: Array<{ command: string; type: string }>, targetCommand: string): boolean {
-  return hooks.some((h) => h.command === targetCommand);
+function isHookInstalled(groups: MatcherGroup[], targetCommand: string): boolean {
+  return groups.some((g) => g.hooks.some((h) => h.command === targetCommand));
 }
 
 function installHooks(): void {
@@ -50,22 +61,26 @@ function installHooks(): void {
     settings.hooks = {};
   }
 
+  // Add tick hook to PostToolUse (match all tools)
   if (!settings.hooks.PostToolUse) {
     settings.hooks.PostToolUse = [];
   }
-
-  if (!settings.hooks.Stop) {
-    settings.hooks.Stop = [];
-  }
-
-  // Add tick hook to PostToolUse
   if (!isHookInstalled(settings.hooks.PostToolUse, TICK_HOOK.command)) {
-    settings.hooks.PostToolUse.push(TICK_HOOK);
+    settings.hooks.PostToolUse.push({
+      matcher: "",
+      hooks: [TICK_HOOK],
+    });
   }
 
   // Add review hook to Stop
+  if (!settings.hooks.Stop) {
+    settings.hooks.Stop = [];
+  }
   if (!isHookInstalled(settings.hooks.Stop, REVIEW_HOOK.command)) {
-    settings.hooks.Stop.push(REVIEW_HOOK);
+    settings.hooks.Stop.push({
+      matcher: "",
+      hooks: [REVIEW_HOOK],
+    });
   }
 
   saveSettings(settings);
@@ -78,17 +93,16 @@ function uninstallHooks(): void {
     return;
   }
 
-  // Remove skm hooks from PostToolUse
+  // Remove skm hooks
   if (settings.hooks.PostToolUse) {
     settings.hooks.PostToolUse = settings.hooks.PostToolUse.filter(
-      (h) => !h.command.startsWith("skm"),
+      (g) => !g.hooks.some((h) => h.command.startsWith("skm")),
     );
   }
 
-  // Remove skm hooks from Stop
   if (settings.hooks.Stop) {
     settings.hooks.Stop = settings.hooks.Stop.filter(
-      (h) => !h.command.startsWith("skm"),
+      (g) => !g.hooks.some((h) => h.command.startsWith("skm")),
     );
   }
 
@@ -99,11 +113,11 @@ function getHookStatus(): { tick: boolean; review: boolean } {
   const settings = loadSettings();
 
   const tickInstalled = settings.hooks?.PostToolUse?.some(
-    (h) => h.command === TICK_HOOK.command,
+    (g) => g.hooks.some((h) => h.command === TICK_HOOK.command),
   ) ?? false;
 
   const reviewInstalled = settings.hooks?.Stop?.some(
-    (h) => h.command === REVIEW_HOOK.command,
+    (g) => g.hooks.some((h) => h.command === REVIEW_HOOK.command),
   ) ?? false;
 
   return { tick: tickInstalled, review: reviewInstalled };
